@@ -56,13 +56,8 @@ jobs:
           print("¡Conversión finalizada con éxito!")
           EOF
 
-      - name: 5. Guardar y sincronizar en el repositorio
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin
-          git checkout ${{ github.ref_name }}
-          git add repositorio_completo.md
-          git commit -m "Actualizar archivo Markdown consolidado automáticamente" || echo "No hay cambios que confirmar"
-          git pull origin ${{ github.ref_name }} --rebase
-          git push origin ${{ github.ref_name }}
+      - name: 5. Sube el archivo Markdown automáticamente
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Actualizar archivo Markdown consolidado automáticamente"
+          file_pattern: "repositorio_completo.md"
