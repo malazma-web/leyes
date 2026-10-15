@@ -1,0 +1,57 @@
+name: Convertir PDFs a un solo Markdown
+
+on:
+  workflow_dispatch: # Permite ejecutarlo manualmente desde la pestaña "Actions" en GitHub
+
+jobs:
+  convertir:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Clonar el repositorio
+        uses: actions/checkout@v4
+
+      - name: 2. Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 3. Instalar librerías necesarias
+        run: |
+          pip install pymupdf
+
+      - name: 4. Ejecutar script de unificación
+        run: |
+          python - <<'EOF'
+          import os
+          import fitz
+
+          carpeta_pdfs = "." # Raíz del repositorio (o cambia si están en una subcarpeta)
+          archivo_salida = "repositorio_completo.md"
+
+          archivos = sorted([f for f in os.listdir(carpeta_pdfs) if f.lower().endswith('.pdf')])
+
+          with open(archivo_salida, 'w', encoding='utf-8') as salida:
+              salida.write("# Consolidado de Documentos del Repositorio\n\n")
+              for archivo in archivos:
+                  ruta_pdf = os.path.join(carpeta_pdfs, archivo)
+                  print(f"Procesando: {archivo}...")
+                  salida.write(f"\n\n---\n\n## Archivo: {archivo}\n\n")
+                  try:
+                      doc = fitz.open(ruta_pdf)
+                      for pagina in doc:
+                          salida.write(pagina.get_text())
+                          salida.write("\n\n")
+                      doc.close()
+                  except Exception as e:
+                      salida.write(f"\n*[Error al procesar: {e}]*\n\n")
+
+          print("¡Conversión finalizada con éxito!")
+          EOF
+
+      - name: 5. Guardar el archivo Markdown en el repositorio
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add repositorio_completo.md
+          git commit -m "Actualizar archivo Markdown consolidado automáticamente" || echo "No hay cambios que confirmar"
+          git push
