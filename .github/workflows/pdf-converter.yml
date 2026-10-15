@@ -1,0 +1,63 @@
+name: Convertir PDFs a Markdown
+
+on:
+  workflow_dispatch:
+
+jobs:
+  convertir:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 1. Clonar el repositorio
+        uses: actions/checkout@v4
+
+      - name: 2. Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 3. Instalar librería PyMuPDF
+        run: |
+          pip install pymupdf
+
+      - name: 4. Ejecutar script de conversión
+        run: |
+          python - <<'EOF'
+          import os
+          import fitz
+
+          carpeta_pdfs = "."
+          archivo_salida = "repositorio_completo.md"
+
+          archivos = sorted([f for f in os.listdir(carpeta_pdfs) if f.lower().endswith('.pdf')])
+
+          if not archivos:
+              print("ERROR: No se encontró ningún archivo PDF en la raíz del repositorio.")
+              exit(1)
+
+          print(f"Se encontraron {len(archivos)} archivos PDF. Iniciando conversión...")
+
+          with open(archivo_salida, 'w', encoding='utf-8') as salida:
+              salida.write("# Consolidado de Documentos del Repositorio\n\n")
+              for archivo in archivos:
+                  ruta_pdf = os.path.join(carpeta_pdfs, archivo)
+                  print(f"Procesando: {archivo}...")
+                  salida.write(f"\n\n---\n\n## Archivo: {archivo}\n\n")
+                  try:
+                      doc = fitz.open(ruta_pdf)
+                      for pagina in doc:
+                          salida.write(pagina.get_text())
+                          salida.write("\n\n")
+                      doc.close()
+                  except Exception as e:
+                      salida.write(f"\n*[Error al procesar este archivo: {e}]*\n\n")
+
+          print("¡Conversión finalizada con éxito!")
+          EOF
+
+      - name: 5. Sube el archivo Markdown automáticamente
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Actualizar archivo Markdown consolidado automáticamente"
+          file_pattern: "repositorio_completo.md"
