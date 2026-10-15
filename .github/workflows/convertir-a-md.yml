@@ -1,18 +1,16 @@
 name: Convertir PDFs a un solo Markdown
 
 on:
-  workflow_dispatch: # Permite ejecutarlo manualmente con un botón
+  workflow_dispatch:
 
 jobs:
   convertir:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Otorga permisos de escritura al flujo de trabajo
+      contents: write
     steps:
       - name: 1. Clonar el repositorio
         uses: actions/checkout@v4
-        with:
-          persist-credentials: true
 
       - name: 2. Configurar Python
         uses: actions/setup-python@v5
@@ -29,11 +27,17 @@ jobs:
           import os
           import fitz
 
-          carpeta_pdfs = "." # Busca en la raíz del repositorio
+          carpeta_pdfs = "."
           archivo_salida = "repositorio_completo.md"
 
-          # Ordenar archivos alfabéticamente
           archivos = sorted([f for f in os.listdir(carpeta_pdfs) if f.lower().endswith('.pdf')])
+
+          if not archivos:
+              print("ERROR: No se encontró ningún archivo PDF en la raíz del repositorio.")
+              print("Asegúrate de haber subido tus PDFs a la misma carpeta principal.")
+              exit(1)
+
+          print(f"Se encontraron {len(archivos)} archivos PDF. Iniciando conversión...")
 
           with open(archivo_salida, 'w', encoding='utf-8') as salida:
               salida.write("# Consolidado de Documentos del Repositorio\n\n")
@@ -48,7 +52,7 @@ jobs:
                           salida.write("\n\n")
                       doc.close()
                   except Exception as e:
-                      salida.write(f"\n*[Error al procesar: {e}]*\n\n")
+                      salida.write(f"\n*[Error al procesar este archivo: {e}]*\n\n")
 
           print("¡Conversión finalizada con éxito!")
           EOF
@@ -59,4 +63,4 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add repositorio_completo.md
           git commit -m "Actualizar archivo Markdown consolidado automáticamente" || echo "No hay cambios que confirmar"
-          git push origin HEAD:${{ github.ref_name }}
+          git push
